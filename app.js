@@ -161,7 +161,13 @@ async function loadState() {
         state.readers = data.readers;
         state.books = data.books;
         state.fines = data.fines;
-        state.currentUser = data.currentUser;
+        
+        const rawSession = sessionStorage.getItem('libricore_session');
+        if (rawSession) {
+            state.currentUser = JSON.parse(rawSession);
+        } else {
+            state.currentUser = null;
+        }
     } catch (e) {
         console.error('Failed to load state from backend:', e);
     }
@@ -409,6 +415,7 @@ async function handleLibrarianLogin(username, password) {
         const data = await res.json();
         if (data.success) {
             state.currentUser = data.session;
+            sessionStorage.setItem('libricore_session', JSON.stringify(state.currentUser));
             showToast('Librarian session authorized successfully.', 'success');
             switchView('librarian');
             await loadState();
@@ -431,6 +438,7 @@ async function handleReaderLogin(username, password) {
         const data = await res.json();
         if (data.success) {
             state.currentUser = data.session;
+            sessionStorage.setItem('libricore_session', JSON.stringify(state.currentUser));
             showToast(`Welcome back, ${state.currentUser.data.name}!`, 'success');
             switchView('reader');
             await loadState();
@@ -453,6 +461,7 @@ async function handleProfileSelectLogin(readerId) {
         const data = await res.json();
         if (data.success) {
             state.currentUser = data.session;
+            sessionStorage.setItem('libricore_session', JSON.stringify(state.currentUser));
             showToast(`Signed in as ${state.currentUser.data.name}`, 'success');
             switchView('reader');
             await loadState();
@@ -472,6 +481,7 @@ async function handleLogout() {
         console.error('Logout request failed:', e);
     }
     state.currentUser = null;
+    sessionStorage.removeItem('libricore_session');
     showToast('Logged out of session.', 'info');
     
     // Reset login forms

@@ -182,9 +182,8 @@ app.post('/api/login', (req, res) => {
 
     if (role === 'librarian') {
         if (username === 'librarian' && password === 'password') {
-            data.currentUser = { role: 'librarian', data: null };
-            saveDatabase(data);
-            return res.json({ success: true, session: data.currentUser });
+            const session = { role: 'librarian', data: null };
+            return res.json({ success: true, session });
         }
         return res.status(401).json({ success: false, message: 'Invalid librarian credentials.' });
     } else if (role === 'reader') {
@@ -192,18 +191,16 @@ app.post('/api/login', (req, res) => {
             // Profile selection login
             const reader = data.readers.find(r => r.id === readerId);
             if (reader) {
-                data.currentUser = { role: 'reader', data: reader };
-                saveDatabase(data);
-                return res.json({ success: true, session: data.currentUser });
+                const session = { role: 'reader', data: reader };
+                return res.json({ success: true, session });
             }
             return res.status(404).json({ success: false, message: 'Reader profile not found.' });
         } else {
             // Credentials login
             const reader = data.readers.find(r => r.username.toLowerCase() === username.toLowerCase());
             if (reader && reader.password === password) {
-                data.currentUser = { role: 'reader', data: reader };
-                saveDatabase(data);
-                return res.json({ success: true, session: data.currentUser });
+                const session = { role: 'reader', data: reader };
+                return res.json({ success: true, session });
             }
             return res.status(401).json({ success: false, message: 'Invalid reader credentials.' });
         }
@@ -212,9 +209,6 @@ app.post('/api/login', (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-    const data = loadDatabase();
-    data.currentUser = null;
-    saveDatabase(data);
     res.json({ success: true });
 });
 
@@ -264,10 +258,7 @@ app.delete('/api/readers/:id', (req, res) => {
 
     data.readers.splice(readerIndex, 1);
     
-    // Clear session if the deleted reader was logged in
-    if (data.currentUser && data.currentUser.role === 'reader' && data.currentUser.data.id === id) {
-        data.currentUser = null;
-    }
+    // Clear session is managed client-side
 
     saveDatabase(data);
     res.json({ success: true, message: `Successfully deleted reader: ${reader.name}` });
@@ -319,10 +310,7 @@ app.post('/api/books/borrow', (req, res) => {
     book.borrowedDate = new Date().toISOString();
     reader.booksBorrowed.push(isbn);
 
-    // Sync session if active reader is current user
-    if (data.currentUser && data.currentUser.role === 'reader' && data.currentUser.data.id === readerId) {
-        data.currentUser.data = reader;
-    }
+    // Sync session is managed client-side
 
     saveDatabase(data);
     res.json({ success: true, book });
@@ -346,10 +334,7 @@ app.post('/api/books/return', (req, res) => {
     if (reader) {
         reader.booksBorrowed = reader.booksBorrowed.filter(code => code !== isbn);
         reader.historyCount = (reader.historyCount || 0) + 1;
-        // Sync session if active reader is current user
-        if (data.currentUser && data.currentUser.role === 'reader' && data.currentUser.data.id === readerId) {
-            data.currentUser.data = reader;
-        }
+        // Sync session is managed client-side
     }
 
     saveDatabase(data);
@@ -379,10 +364,7 @@ app.post('/api/fines/levy', (req, res) => {
     data.fines.push(fineObj);
     reader.fineBalance = (parseFloat(reader.fineBalance) || 0) + parsedAmount;
 
-    // Sync session if active reader is current user
-    if (data.currentUser && data.currentUser.role === 'reader' && data.currentUser.data.id === readerId) {
-        data.currentUser.data = reader;
-    }
+    // Sync session is managed client-side
 
     saveDatabase(data);
     res.status(201).json({ success: true, fine: fineObj });
@@ -406,10 +388,7 @@ app.post('/api/fines/pay', (req, res) => {
 
     reader.fineBalance = 0.00;
 
-    // Sync session if active reader is current user
-    if (data.currentUser && data.currentUser.role === 'reader' && data.currentUser.data.id === readerId) {
-        data.currentUser.data = reader;
-    }
+    // Sync session is managed client-side
 
     saveDatabase(data);
     res.json({ success: true, reader });
