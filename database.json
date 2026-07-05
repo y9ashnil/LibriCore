@@ -1,0 +1,153 @@
+{
+    "readers": [
+        {
+            "id": "read-1",
+            "username": "liam",
+            "name": "Liam Chen",
+            "email": "liam.chen@library.org",
+            "password": "password",
+            "avatarSeed": "liam",
+            "booksBorrowed": [
+                "978-0441172719"
+            ],
+            "historyCount": 4,
+            "fineBalance": 5
+        },
+        {
+            "id": "read-2",
+            "username": "maya",
+            "name": "Maya Patel",
+            "email": "maya.patel@domain.com",
+            "password": "password",
+            "avatarSeed": "maya",
+            "booksBorrowed": [
+                "978-05df342138",
+                "978-0062316097"
+            ],
+            "historyCount": 12,
+            "fineBalance": 0
+        },
+        {
+            "id": "read-3",
+            "username": "alex",
+            "name": "Alex Rivera",
+            "email": "alex.rivera@edu.com",
+            "password": "password",
+            "avatarSeed": "alex",
+            "booksBorrowed": [],
+            "historyCount": 2,
+            "fineBalance": 12.5
+        }
+    ],
+    "books": [
+        {
+            "isbn": "978-0441172719",
+            "title": "Dune",
+            "author": "Frank Herbert",
+            "genre": "Science Fiction",
+            "borrowedBy": "read-1",
+            "borrowedDate": "2026-06-25T10:30:00.000Z"
+        },
+        {
+            "isbn": "978-05df342138",
+            "title": "Project Hail Mary",
+            "author": "Andy Weir",
+            "genre": "Science Fiction",
+            "borrowedBy": "read-2",
+            "borrowedDate": "2026-07-01T14:15:00.000Z"
+        },
+        {
+            "isbn": "978-0062316097",
+            "title": "Sapiens: A Brief History of Humankind",
+            "author": "Yuval Noah Harari",
+            "genre": "History",
+            "borrowedBy": "read-2",
+            "borrowedDate": "2026-06-28T09:00:00.000Z"
+        },
+        {
+            "isbn": "978-0618640157",
+            "title": "The Hobbit",
+            "author": "J.R.R. Tolkien",
+            "genre": "Fantasy",
+            "borrowedBy": null,
+            "borrowedDate": null
+        },
+        {
+            "isbn": "978-0399590504",
+            "title": "Educated",
+            "author": "Tara Westover",
+            "genre": "Biography",
+            "borrowedBy": null,
+            "borrowedDate": null
+        },
+        {
+            "isbn": "978-1501135910",
+            "title": "Steve Jobs",
+            "author": "Walter Isaacson",
+            "genre": "Biography",
+            "borrowedBy": null,
+            "borrowedDate": null
+        },
+        {
+            "isbn": "978-0747532743",
+            "title": "Harry Potter and the Philosopher's Stone",
+            "author": "J.K. Rowling",
+            "genre": "Fantasy",
+            "borrowedBy": null,
+            "borrowedDate": null
+        },
+        {
+            "isbn": "978-1451673319",
+            "title": "Fahrenheit 451",
+            "author": "Ray Bradbury",
+            "genre": "Fiction",
+            "borrowedBy": null,
+            "borrowedDate": null
+        }
+    ],
+    "fines": [
+        {
+            "id": "fine-1",
+            "readerId": "read-1",
+            "readerName": "Liam Chen",
+            "amount": 5,
+            "reason": "Late Return Penalty",
+            "date": "2026-06-20",
+            "status": "unpaid"
+        },
+        {
+            "id": "fine-2",
+            "readerId": "read-3",
+            "readerName": "Alex Rivera",
+            "amount": 7.5,
+            "reason": "Damaged Book Sleeve",
+            "date": "2026-06-18",
+            "status": "unpaid"
+        },
+        {
+            "id": "fine-3",
+            "readerId": "read-3",
+            "readerName": "Alex Rivera",
+            "amount": 5,
+            "reason": "Late Return Penalty",
+            "date": "2026-06-24",
+            "status": "unpaid"
+        }
+    ],
+    "currentUser": {
+        "role": "reader",
+        "data": {
+            "id": "read-1",
+            "username": "liam",
+            "name": "Liam Chen",
+            "email": "liam.chen@library.org",
+            "password": "password",
+            "avatarSeed": "liam",
+            "booksBorrowed": [
+                "978-0441172719"
+            ],
+            "historyCount": 4,
+            "fineBalance": 5
+        }
+    }
+}

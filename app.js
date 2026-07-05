@@ -154,38 +154,21 @@ const INITIAL_FINES = [
 ];
 
 // Load and save state
-function loadState() {
-    const rawReaders = localStorage.getItem(STORAGE_KEY_READERS);
-    const rawBooks = localStorage.getItem(STORAGE_KEY_BOOKS);
-    const rawFines = localStorage.getItem(STORAGE_KEY_FINES);
-    const rawSession = localStorage.getItem(STORAGE_KEY_SESSION);
-
-    if (rawReaders && rawBooks && rawFines) {
-        state.readers = JSON.parse(rawReaders);
-        state.books = JSON.parse(rawBooks);
-        state.fines = JSON.parse(rawFines);
-    } else {
-        // First run: populate with initial seed data
-        state.readers = [...INITIAL_READERS];
-        state.books = [...INITIAL_BOOKS];
-        state.fines = [...INITIAL_FINES];
-        saveStateToStorage();
-    }
-
-    if (rawSession) {
-        state.currentUser = JSON.parse(rawSession);
+async function loadState() {
+    try {
+        const res = await fetch('/api/state');
+        const data = await res.json();
+        state.readers = data.readers;
+        state.books = data.books;
+        state.fines = data.fines;
+        state.currentUser = data.currentUser;
+    } catch (e) {
+        console.error('Failed to load state from backend:', e);
     }
 }
 
 function saveStateToStorage() {
-    localStorage.setItem(STORAGE_KEY_READERS, JSON.stringify(state.readers));
-    localStorage.setItem(STORAGE_KEY_BOOKS, JSON.stringify(state.books));
-    localStorage.setItem(STORAGE_KEY_FINES, JSON.stringify(state.fines));
-    if (state.currentUser) {
-        localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(state.currentUser));
-    } else {
-        localStorage.removeItem(STORAGE_KEY_SESSION);
-    }
+    // Session and database state are managed on the backend.
 }
 
 // ----------------------------------------------------------------------------
@@ -416,47 +399,79 @@ function renderReaderHeader() {
 }
 
 // Login Actions
-function handleLibrarianLogin(username, password) {
-    if (username === 'librarian' && password === 'password') {
-        state.currentUser = { role: 'librarian', data: null };
-        saveStateToStorage();
-        showToast('Librarian session authorized successfully.', 'success');
-        switchView('librarian');
-    } else {
-        showToast('Invalid librarian credentials. Use default admin details.', 'error');
-    }
-}
-
-function handleReaderLogin(username, password) {
-    const reader = state.readers.find(r => r.username.toLowerCase() === username.toLowerCase());
-    
-    if (reader) {
-        if (reader.password === password) {
-            state.currentUser = { role: 'reader', data: reader };
-            saveStateToStorage();
-            showToast(`Welcome back, ${reader.name}!`, 'success');
-            switchView('reader');
+async function handleLibrarianLogin(username, password) {
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'librarian', username, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+            state.currentUser = data.session;
+            showToast('Librarian session authorized successfully.', 'success');
+            switchView('librarian');
+            await loadState();
+            renderLibrarianDashboard();
         } else {
-            showToast('Invalid credentials. Check your password.', 'error');
+            showToast(data.message || 'Invalid librarian credentials.', 'error');
         }
-    } else {
-        showToast('Reader account username not found.', 'warning');
+    } catch (e) {
+        showToast('Server communication error.', 'error');
     }
 }
 
-function handleProfileSelectLogin(readerId) {
-    const reader = state.readers.find(r => r.id === readerId);
-    if (reader) {
-        state.currentUser = { role: 'reader', data: reader };
-        saveStateToStorage();
-        showToast(`Signed in as ${reader.name}`, 'success');
-        switchView('reader');
+async function handleReaderLogin(username, password) {
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'reader', username, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+            state.currentUser = data.session;
+            showToast(`Welcome back, ${state.currentUser.data.name}!`, 'success');
+            switchView('reader');
+            await loadState();
+            renderReaderDashboard();
+        } else {
+            showToast(data.message || 'Invalid credentials.', 'error');
+        }
+    } catch (e) {
+        showToast('Server communication error.', 'error');
     }
 }
 
-function handleLogout() {
+async function handleProfileSelectLogin(readerId) {
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'reader', readerId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            state.currentUser = data.session;
+            showToast(`Signed in as ${state.currentUser.data.name}`, 'success');
+            switchView('reader');
+            await loadState();
+            renderReaderDashboard();
+        } else {
+            showToast(data.message || 'Failed to select profile.', 'error');
+        }
+    } catch (e) {
+        showToast('Server communication error.', 'error');
+    }
+}
+
+async function handleLogout() {
+    try {
+        await fetch('/api/logout', { method: 'POST' });
+    } catch (e) {
+        console.error('Logout request failed:', e);
+    }
     state.currentUser = null;
-    saveStateToStorage();
     showToast('Logged out of session.', 'info');
     
     // Reset login forms
@@ -466,6 +481,7 @@ function handleLogout() {
     document.getElementById('librarian-password').value = 'password';
     
     switchView('login');
+    await loadState();
     renderLoginProfiles();
 }
 
@@ -648,141 +664,119 @@ function renderBooksTableLibrarian() {
 // 7. LIBRARIAN TRANSACTIONS (ADD/REMOVE READER, ASSESS FINES)
 // ----------------------------------------------------------------------------
 
-function registerNewReader(name, username, email, password, avatarSeed) {
-    // 1. Validation for unique credentials
-    const isDupUsername = state.readers.some(r => r.username.toLowerCase() === username.toLowerCase());
-    if (isDupUsername || username === 'librarian') {
-        showToast('Username already taken by member or system administrator.', 'error');
+async function registerNewReader(name, username, email, password, avatarSeed) {
+    try {
+        const res = await fetch('/api/readers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, username, email, password, avatarSeed })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`Registered reader account for ${name}.`, 'success');
+            await loadState();
+            renderReadersTable();
+            closeModal('modal-add-reader');
+            return true;
+        } else {
+            showToast(data.message || 'Failed to register reader.', 'error');
+            return false;
+        }
+    } catch (e) {
+        showToast('Server communication error.', 'error');
         return false;
     }
-
-    const isDupEmail = state.readers.some(r => r.email.toLowerCase() === email.toLowerCase());
-    if (isDupEmail) {
-        showToast('Email address already registered.', 'error');
-        return false;
-    }
-
-    // 2. Build User Account Object
-    const newId = `read-${Date.now()}`;
-    const newReader = {
-        id: newId,
-        username: username,
-        name: name,
-        email: email,
-        password: password,
-        avatarSeed: avatarSeed || username,
-        booksBorrowed: [],
-        historyCount: 0,
-        fineBalance: 0.00
-    };
-
-    // 3. Inject and update state
-    state.readers.push(newReader);
-    saveStateToStorage();
-    showToast(`Registered reader account for ${name}.`, 'success');
-    
-    // Refresh panels
-    renderReadersTable();
-    closeModal('modal-add-reader');
-    return true;
 }
 
-function removeReader(readerId) {
+async function removeReader(readerId) {
     const reader = state.readers.find(r => r.id === readerId);
     if (!reader) return;
 
     if (confirm(`Are you absolutely sure you want to delete ${reader.name}'s library account?\nAny current book borrowings will be checked back into the system.`)) {
-        // Return borrowed books first
-        const readerBooks = state.books.filter(b => b.borrowedBy === readerId);
-        readerBooks.forEach(book => {
-            book.borrowedBy = null;
-            book.borrowedDate = null;
+        try {
+            const res = await fetch(`/api/readers/${readerId}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`Successfully deleted reader profile: ${reader.name}.`, 'success');
+                await loadState();
+                renderReadersTable();
+                renderLibrarianDashboard();
+            } else {
+                showToast(data.message || 'Failed to delete reader.', 'error');
+            }
+        } catch (e) {
+            showToast('Server communication error.', 'error');
+        }
+    }
+}
+
+async function forceReturnBook(isbn) {
+    try {
+        const res = await fetch('/api/books/return', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isbn })
         });
-
-        // Filter reader from state list
-        state.readers = state.readers.filter(r => r.id !== readerId);
-        
-        // Remove related fines
-        state.fines = state.fines.filter(f => f.readerId !== readerId);
-
-        saveStateToStorage();
-        showToast(`Successfully deleted reader profile: ${reader.name}.`, 'success');
-        
-        // Refresh tables and views
-        renderReadersTable();
-        renderLibrarianDashboard();
+        const data = await res.json();
+        if (data.success) {
+            showToast(`Title '${data.book.title}' has been successfully checked in.`, 'success');
+            await loadState();
+            renderBooksTableLibrarian();
+            renderLibrarianDashboard();
+        } else {
+            showToast(data.message || 'Failed to return book.', 'error');
+        }
+    } catch (e) {
+        showToast('Server communication error.', 'error');
     }
 }
 
-function forceReturnBook(isbn) {
-    const book = state.books.find(b => b.isbn === isbn);
-    if (!book || !book.borrowedBy) return;
-
-    const reader = state.readers.find(r => r.id === book.borrowedBy);
-    if (reader) {
-        reader.booksBorrowed = reader.booksBorrowed.filter(code => code !== isbn);
-        reader.historyCount = (reader.historyCount || 0) + 1;
+async function levyPenaltyFine(readerId, amount, reason) {
+    try {
+        const res = await fetch('/api/fines/levy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ readerId, amount: parseFloat(amount), reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`Levied ₹${parseFloat(amount).toFixed(2)} fine.`, 'warning');
+            await loadState();
+            closeModal('modal-levy-fine');
+            renderReadersTable();
+            renderLibrarianDashboard();
+        } else {
+            showToast(data.message || 'Failed to levy fine.', 'error');
+        }
+    } catch (e) {
+        showToast('Server communication error.', 'error');
     }
-
-    book.borrowedBy = null;
-    book.borrowedDate = null;
-
-    saveStateToStorage();
-    showToast(`Title '${book.title}' has been successfully checked in.`, 'success');
-    renderBooksTableLibrarian();
-    renderLibrarianDashboard();
 }
 
-function levyPenaltyFine(readerId, amount, reason) {
-    const reader = state.readers.find(r => r.id === readerId);
-    if (!reader) return;
-
-    const fineObj = {
-        id: `fine-${Date.now()}`,
-        readerId: readerId,
-        readerName: reader.name,
-        amount: parseFloat(amount),
-        reason: reason,
-        date: new Date().toISOString().split('T')[0],
-        status: 'unpaid'
-    };
-
-    // Update state
-    state.fines.push(fineObj);
-    reader.fineBalance = (parseFloat(reader.fineBalance) || 0) + parseFloat(amount);
-    
-    saveStateToStorage();
-    showToast(`Levied ₹${parseFloat(amount).toFixed(2)} fine on ${reader.name}`, 'warning');
-    
-    // Reset inputs and close
-    closeModal('modal-levy-fine');
-    renderReadersTable();
-    renderLibrarianDashboard();
-}
-
-function registerNewBook(title, author, genre, isbn) {
-    const isDupIsbn = state.books.some(b => b.isbn === isbn);
-    if (isDupIsbn) {
-        showToast('A book with this ISBN code already exists.', 'error');
+async function registerNewBook(title, author, genre, isbn) {
+    try {
+        const res = await fetch('/api/books', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, author, genre, isbn })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`Successfully cataloged title: '${title}'`, 'success');
+            await loadState();
+            renderBooksTableLibrarian();
+            closeModal('modal-add-book');
+            return true;
+        } else {
+            showToast(data.message || 'Failed to catalog book.', 'error');
+            return false;
+        }
+    } catch (e) {
+        showToast('Server communication error.', 'error');
         return false;
     }
-
-    const newBook = {
-        isbn: isbn,
-        title: title,
-        author: author,
-        genre: genre,
-        borrowedBy: null,
-        borrowedDate: null
-    };
-
-    state.books.push(newBook);
-    saveStateToStorage();
-    showToast(`Successfully cataloged title: '${title}'`, 'success');
-    
-    renderBooksTableLibrarian();
-    closeModal('modal-add-book');
-    return true;
 }
 
 // Modals Trigger Handlers (Librarian)
@@ -1000,92 +994,92 @@ function renderReaderFinesTable() {
 // 9. READER TRANSACTIONS (BORROW, RETURN, PAY FINE)
 // ----------------------------------------------------------------------------
 
-function readerBorrowBook(isbn) {
+async function readerBorrowBook(isbn) {
     if (!state.currentUser || state.currentUser.role !== 'reader') return;
     const readerId = state.currentUser.data.id;
-    const reader = state.readers.find(r => r.id === readerId);
     
-    // Check borrowing locks: Fines cap (limit to borrow if outstanding fine exceeds ₹10)
-    if (parseFloat(reader.fineBalance) > 10.00) {
-        showToast('Borrowing blocked! Your outstanding fines exceed ₹10.00. Settle balance to borrow.', 'error');
-        return;
+    try {
+        const res = await fetch('/api/books/borrow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isbn, readerId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`Successfully borrowed '${data.book.title}'. Checked out under 14-day policy.`, 'success');
+            await loadState();
+            renderReaderCatalog();
+            renderReaderDashboard();
+        } else {
+            showToast(data.message || 'Failed to borrow book.', 'error');
+        }
+    } catch (e) {
+        showToast('Server communication error.', 'error');
     }
-
-    // Check availability
-    const book = state.books.find(b => b.isbn === isbn);
-    if (!book || book.borrowedBy !== null) {
-        showToast('This book is currently not available for checkout.', 'error');
-        return;
-    }
-
-    // Process borrowing action
-    book.borrowedBy = readerId;
-    book.borrowedDate = new Date().toISOString();
-    reader.booksBorrowed.push(isbn);
-
-    saveStateToStorage();
-    showToast(`Successfully borrowed '${book.title}'. Checked out under 14-day policy.`, 'success');
-    
-    // Refresh
-    renderReaderCatalog();
-    renderReaderDashboard();
 }
 
-function readerReturnBook(isbn) {
+async function readerReturnBook(isbn) {
     if (!state.currentUser || state.currentUser.role !== 'reader') return;
-    const readerId = state.currentUser.data.id;
-    const reader = state.readers.find(r => r.id === readerId);
-
-    const book = state.books.find(b => b.isbn === isbn);
-    if (!book || book.borrowedBy !== readerId) return;
-
-    // Process check-in
-    book.borrowedBy = null;
-    book.borrowedDate = null;
-    reader.booksBorrowed = reader.booksBorrowed.filter(code => code !== isbn);
-    reader.historyCount = (reader.historyCount || 0) + 1;
-
-    saveStateToStorage();
-    showToast(`You have checked back: '${book.title}'. Thank you!`, 'success');
-
-    // Refresh views
-    renderReaderDashboard();
+    
+    try {
+        const res = await fetch('/api/books/return', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isbn })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`You have checked back: '${data.book.title}'. Thank you!`, 'success');
+            await loadState();
+            renderReaderDashboard();
+        } else {
+            showToast(data.message || 'Failed to return book.', 'error');
+        }
+    } catch (e) {
+        showToast('Server communication error.', 'error');
+    }
 }
 
-function handlePayFineProcess(cardholder, cardnumber) {
+async function handlePayFineProcess(cardholder, cardnumber) {
     if (!state.currentUser || state.currentUser.role !== 'reader') return;
     const readerId = state.currentUser.data.id;
-    const reader = state.readers.find(r => r.id === readerId);
     
-    const fineBalance = parseFloat(reader.fineBalance || 0);
-    if (fineBalance <= 0) return;
-
     // Transition modal views to "Processing"
     document.getElementById('payment-gate-screen').classList.add('hidden');
     document.getElementById('payment-processing-screen').classList.remove('hidden');
 
-    // Mock processing timer
-    setTimeout(() => {
-        // Complete transaction processing
-        state.fines.forEach(fine => {
-            if (fine.readerId === readerId && fine.status === 'unpaid') {
-                fine.status = 'paid';
-            }
+    try {
+        const res = await fetch('/api/fines/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ readerId })
         });
-        reader.fineBalance = 0.00;
-
-        saveStateToStorage();
-
-        // Transition to success screen
+        const data = await res.json();
+        
+        // Mock processing visual delay for premium feel
+        setTimeout(async () => {
+            if (data.success) {
+                await loadState();
+                // Transition to success screen
+                document.getElementById('payment-processing-screen').classList.add('hidden');
+                document.getElementById('payment-success-screen').classList.remove('hidden');
+                
+                showToast('Payment successful! Your library account is cleared.', 'success');
+                
+                // Refresh portal elements
+                renderReaderDashboard();
+                renderReaderFinesTable();
+            } else {
+                document.getElementById('payment-processing-screen').classList.add('hidden');
+                document.getElementById('payment-gate-screen').classList.remove('hidden');
+                showToast(data.message || 'Payment authentication failed.', 'error');
+            }
+        }, 2000);
+    } catch (e) {
         document.getElementById('payment-processing-screen').classList.add('hidden');
-        document.getElementById('payment-success-screen').classList.remove('hidden');
-        
-        showToast('Payment successful! Your library account is cleared.', 'success');
-        
-        // Refresh portal elements
-        renderReaderDashboard();
-        renderReaderFinesTable();
-    }, 2000);
+        document.getElementById('payment-gate-screen').classList.remove('hidden');
+        showToast('Server communication error during transaction.', 'error');
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -1148,9 +1142,9 @@ function initModalTriggers() {
 // ----------------------------------------------------------------------------
 // 11. BOOTSTRAP INITIALIZATION AND DOM LISTENERS
 // ----------------------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // 1. Initial State Load
-    loadState();
+    await loadState();
 
     // 2. Initialize UI Triggers & Routing
     initTabNavigation();
