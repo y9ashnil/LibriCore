@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LibriCore | Premium Library Portal</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="styles.css?v=1.0.1">
+</head>
+<body class="dark-theme">
+    <div class="background-decor">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app">
+        <!-- HEADER (Visible when logged in) -->
+        <header id="app-header" class="glass-panel hidden">
+            <div class="header-logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">Libri<span class="highlight">Core</span></span>
+            </div>
+            <div class="user-status-container">
+                <div class="user-status-card">
+                    <div class="user-avatar-small" id="header-avatar"></div>
+                    <div class="user-status-info">
+                        <span class="user-status-name" id="header-user-name">Loading...</span>
+                        <span class="user-status-role" id="header-user-role">Role</span>
+                    </div>
+                </div>
+                <button id="btn-logout" class="btn btn-secondary btn-icon-only" title="Logout">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- 1. LOGIN VIEW -->
+        <section id="login-view" class="view-section">
+            <div class="login-container">
+                <div class="login-header">
+                    <span class="login-logo">📚</span>
+                    <h1>Welcome to <span class="gradient-text">LibriCore</span></h1>
+                    <p class="subtitle">Access your premium library experience</p>
+                </div>
+
+                <!-- Role Selector Tabs -->
+                <div class="role-selector glass-panel">
+                    <button class="role-tab active" data-role="reader">Reader Portal</button>
+                    <button class="role-tab" data-role="librarian">Librarian Portal</button>
+                </div>
+
+                <!-- Reader Login Form -->
+                <div id="reader-login-form" class="login-form-content active">
+                    <div class="profile-select-container">
+                        <h3>Choose a profile to sign in</h3>
+                        <div class="profile-grid" id="reader-profiles-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                    
+                    <div class="divider"><span>OR</span></div>
+                    
+                    <form id="reader-credentials-form">
+                        <div class="form-group">
+                            <label for="reader-username">Username</label>
+                            <input type="text" id="reader-username" placeholder="Enter reader username" autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="reader-password">Password</label>
+                            <input type="password" id="reader-password" placeholder="••••••••" autocomplete="current-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                    </form>
+                </div>
+
+                <!-- Librarian Login Form -->
+                <div id="librarian-login-form" class="login-form-content">
+                    <div class="admin-notice">
+                        <span class="icon">ℹ️</span>
+                        <div class="text">
+                            <strong>Demo Credentials:</strong><br>
+                            Username: <code>librarian</code> | Password: <code>password</code>
+                        </div>
+                    </div>
+                    <form id="librarian-credentials-form">
+                        <div class="form-group">
+                            <label for="librarian-username">Librarian Username</label>
+                            <input type="text" id="librarian-username" value="librarian" placeholder="Enter librarian username" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="librarian-password">Password</label>
+                            <input type="password" id="librarian-password" value="password" placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Sign In as Librarian</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. LIBRARIAN PORTAL VIEW -->
+        <section id="librarian-view" class="view-section hidden">
+            <div class="portal-layout">
+                <!-- Sidebar Navigation -->
+                <nav class="portal-sidebar glass-panel">
+                    <div class="nav-links">
+                        <button class="nav-btn active" data-tab="lib-dashboard">
+                            <span class="icon">📊</span> Dashboard
+                        </button>
+                        <button class="nav-btn" data-tab="lib-readers">
+                            <span class="icon">👥</span> Manage Readers
+                        </button>
+                        <button class="nav-btn" data-tab="lib-books">
+                            <span class="icon">📖</span> Book Catalog
+                        </button>
+                    </div>
+                </nav>
+
+                <!-- Portal Main Content -->
+                <main class="portal-main">
+                    <!-- Tab: Dashboard -->
+                    <div id="lib-dashboard" class="tab-content active">
+                        <div class="tab-header">
+                            <h2>Dashboard Overview</h2>
+                            <p class="text-secondary">Key system statistics at a glance.</p>
+                        </div>
+
+                        <!-- Stats Cards Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card glass-panel border-glow-blue">
+                                <div class="stat-icon bg-blue-glow">👥</div>
+                                <div class="stat-details">
+                                    <span class="stat-value" id="stat-total-readers">0</span>
+                                    <span class="stat-label">Total Readers</span>
+                                </div>
+                            </div>
+                            <div class="stat-card glass-panel border-glow-purple">
+                                <div class="stat-icon bg-purple-glow">📖</div>
+                                <div class="stat-details">
+                                    <span class="stat-value" id="stat-borrowed-books">0</span>
+                                    <span class="stat-label">Books Borrowed</span>
+                                </div>
+                            </div>
+                            <div class="stat-card glass-panel border-glow-red">
+                                <div class="stat-icon bg-red-glow">💸</div>
+                                <div class="stat-details">
+                                    <span class="stat-value" id="stat-outstanding-fines">₹0.00</span>
+                                    <span class="stat-label">Outstanding Fines</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Activity Panels -->
+                        <div class="dashboard-sections-grid">
+                            <!-- Recent Fines -->
+                            <div class="dashboard-panel glass-panel">
+                                <h3>Recent Fine Levies</h3>
+                                <div class="scroll-container">
+                                    <table class="data-table small-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Reader</th>
+                                                <th>Reason</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="lib-recent-fines-body">
+                                            <!-- Populated by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Overdue Borrowings -->
+                            <div class="dashboard-panel glass-panel">
+                                <h3>Active Borrowings</h3>
+                                <div class="scroll-container">
+                                    <table class="data-table small-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Book</th>
+                                                <th>Reader</th>
+                                                <th>Issue Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="lib-recent-borrowings-body">
+                                            <!-- Populated by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Manage Readers -->
+                    <div id="lib-readers" class="tab-content">
+                        <div class="tab-header flex-header">
+                            <div>
+                                <h2>Reader Directory</h2>
+                                <p class="text-secondary">Add, remove, and manage fines for all registered library members.</p>
+                            </div>
+                            <button class="btn btn-primary" id="btn-open-add-reader">
+                                <span class="icon-add">+</span> Add Reader
+                            </button>
+                        </div>
+
+                        <!-- Readers Table Container -->
+                        <div class="table-container glass-panel">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Reader Profile</th>
+                                        <th>Username</th>
+                                        <th>Contact Email</th>
+                                        <th>Books Borrowed</th>
+                                        <th>Outstanding Fines</th>
+                                        <th class="text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lib-readers-table-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Book Catalog (Librarian) -->
+                    <div id="lib-books" class="tab-content">
+                        <div class="tab-header flex-header">
+                            <div>
+                                <h2>Book Inventory</h2>
+                                <p class="text-secondary">Monitor book circulation and register new physical titles.</p>
+                            </div>
+                            <button class="btn btn-primary" id="btn-open-add-book">
+                                <span class="icon-add">+</span> Add New Book
+                            </button>
+                        </div>
+
+                        <div class="table-container glass-panel">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Book Details</th>
+                                        <th>ISBN</th>
+                                        <th>Genre</th>
+                                        <th>Status</th>
+                                        <th>Borrowed By</th>
+                                        <th class="text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lib-books-table-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </section>
+
+        <!-- 3. READER PORTAL VIEW -->
+        <section id="reader-view" class="view-section hidden">
+            <div class="portal-layout">
+                <!-- Sidebar Navigation -->
+                <nav class="portal-sidebar glass-panel">
+                    <div class="nav-links">
+                        <button class="nav-btn active" data-tab="read-dashboard">
+                            <span class="icon">📊</span> My Dashboard
+                        </button>
+                        <button class="nav-btn" data-tab="read-catalog">
+                            <span class="icon">📖</span> Browse Books
+                        </button>
+                        <button class="nav-btn" data-tab="read-fines">
+                            <span class="icon">💸</span> Fines & Payments
+                        </button>
+                    </div>
+                </nav>
+
+                <!-- Portal Main Content -->
+                <main class="portal-main">
+                    <!-- Tab: My Dashboard -->
+                    <div id="read-dashboard" class="tab-content active">
+                        <div class="tab-header">
+                            <h2>Welcome back, <span id="reader-welcome-name">Reader</span>!</h2>
+                            <p class="text-secondary">Track your reading lists, outstanding balances, and loans here.</p>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="stats-grid reader-stats-grid">
+                            <div class="stat-card glass-panel border-glow-cyan">
+                                <div class="stat-icon bg-cyan-glow">📚</div>
+                                <div class="stat-details">
+                                    <span class="stat-value" id="reader-stat-taken">0</span>
+                                    <span class="stat-label">Total Books Taken</span>
+                                </div>
+                            </div>
+                            <div class="stat-card glass-panel border-glow-green">
+                                <div class="stat-icon bg-green-glow">✅</div>
+                                <div class="stat-details">
+                                    <span class="stat-value" id="reader-stat-returned">0</span>
+                                    <span class="stat-label">Returned Books</span>
+                                </div>
+                            </div>
+                            <div class="stat-card glass-panel border-glow-blue">
+                                <div class="stat-icon bg-blue-glow">📖</div>
+                                <div class="stat-details">
+                                    <span class="stat-value" id="reader-stat-borrowed">0</span>
+                                    <span class="stat-label">Books Currently Held</span>
+                                </div>
+                            </div>
+                            <div class="stat-card glass-panel border-glow-red">
+                                <div class="stat-icon bg-red-glow">💸</div>
+                                <div class="stat-details">
+                                    <span class="stat-value" id="reader-stat-fines">₹0.00</span>
+                                    <span class="stat-label">Outstanding Fines</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Borrowed Books & Active Fines row -->
+                        <div class="dashboard-sections-grid">
+                            <!-- Currently Borrowed Books -->
+                            <div class="dashboard-panel glass-panel">
+                                <h3>Currently Borrowed Books</h3>
+                                <div class="scroll-container">
+                                    <div class="borrowed-books-list" id="reader-borrowed-list">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alert Panel for Fines -->
+                            <div class="dashboard-panel glass-panel flex-panel">
+                                <h3>Account Standing</h3>
+                                <div id="reader-standing-card" class="standing-card success">
+                                    <div class="standing-icon">✓</div>
+                                    <div class="standing-text">
+                                        <h4>All Clear!</h4>
+                                        <p>You have no unpaid fines. Thank you for returning books on time!</p>
+                                    </div>
+                                </div>
+                                <div class="standing-pay-now-container hidden" id="reader-standing-fine-box">
+                                    <div class="fine-due-banner">
+                                        <span class="fine-title">Total Fines Unpaid</span>
+                                        <span class="fine-amount" id="reader-standing-fine-amount">₹10.00</span>
+                                    </div>
+                                    <p class="text-secondary text-sm">Please pay your outstanding balance to avoid suspension of library privileges.</p>
+                                    <button class="btn btn-red btn-block" id="btn-pay-fines-shortcut">Pay Fine Now</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Browse & Borrow Books -->
+                    <div id="read-catalog" class="tab-content">
+                        <div class="tab-header">
+                            <h2>Browse Library Books</h2>
+                            <p class="text-secondary">Search the physical catalogue and check out books directly to your account.</p>
+                        </div>
+
+                        <!-- Filter options -->
+                        <div class="filter-bar glass-panel">
+                            <div class="search-input-wrapper">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="catalog-search" placeholder="Search by title, author, or genre...">
+                            </div>
+                            <div class="filter-select-wrapper">
+                                <select id="catalog-genre-filter">
+                                    <option value="all">All Genres</option>
+                                    <option value="Fiction">Fiction</option>
+                                    <option value="Science Fiction">Science Fiction</option>
+                                    <option value="Fantasy">Fantasy</option>
+                                    <option value="Biography">Biography</option>
+                                    <option value="History">History</option>
+                                    <option value="Technology">Technology</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Book Grid -->
+                        <div class="book-grid" id="reader-book-grid">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Tab: Fines & Transactions -->
+                    <div id="read-fines" class="tab-content">
+                        <div class="tab-header flex-header">
+                            <div>
+                                <h2>Fines & Fee Statements</h2>
+                                <p class="text-secondary">Review library penalty histories and settle outstanding fines securely.</p>
+                            </div>
+                            <button class="btn btn-red hidden" id="btn-pay-fines-main">Pay Total Fine</button>
+                        </div>
+
+                        <div class="table-container glass-panel">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Reference ID</th>
+                                        <th>Date Assessed</th>
+                                        <th>Reason/Description</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reader-fines-table-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </section>
+    </div>
+
+    <!-- ==================== MODALS & DIALOGS ==================== -->
+
+    <!-- Add Reader Modal -->
+    <div class="modal-overlay hidden" id="modal-add-reader">
+        <div class="modal-card glass-panel">
+            <div class="modal-header">
+                <h3>Add New Reader Account</h3>
+                <button class="modal-close-btn" data-close="modal-add-reader">&times;</button>
+            </div>
+            <form id="form-add-reader">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group col-span-2">
+                            <label for="new-reader-name">Full Name</label>
+                            <input type="text" id="new-reader-name" placeholder="e.g. Eleanor Vance" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-reader-username">Username</label>
+                            <input type="text" id="new-reader-username" placeholder="e.g. eleanor_v" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-reader-email">Email Address</label>
+                            <input type="email" id="new-reader-email" placeholder="e.g. eleanor@example.com" required>
+                        </div>
+                        <div class="form-group col-span-2">
+                            <label for="new-reader-password">Initial Password</label>
+                            <input type="password" id="new-reader-password" value="reader123" placeholder="Enter password" required>
+                        </div>
+                        <div class="form-group col-span-2">
+                            <label>Avatar Visual Style Seed</label>
+                            <div class="avatar-seed-selection">
+                                <input type="text" id="new-reader-seed" placeholder="Type letters to change avatar visual" value="el">
+                                <div class="avatar-preview-box" id="new-reader-avatar-preview"></div>
+                            </div>
+                            <span class="input-hint">Type any characters; the avatar shape and colors generate uniquely from this seed.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-close="modal-add-reader">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Reader Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Book Modal -->
+    <div class="modal-overlay hidden" id="modal-add-book">
+        <div class="modal-card glass-panel">
+            <div class="modal-header">
+                <h3>Register New Book</h3>
+                <button class="modal-close-btn" data-close="modal-add-book">&times;</button>
+            </div>
+            <form id="form-add-book">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group col-span-2">
+                            <label for="new-book-title">Book Title</label>
+                            <input type="text" id="new-book-title" placeholder="e.g. The Lord of the Rings" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-book-author">Author Name</label>
+                            <input type="text" id="new-book-author" placeholder="e.g. J.R.R. Tolkien" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-book-genre">Genre</label>
+                            <select id="new-book-genre" required>
+                                <option value="Fiction">Fiction</option>
+                                <option value="Science Fiction">Science Fiction</option>
+                                <option value="Fantasy">Fantasy</option>
+                                <option value="Biography">Biography</option>
+                                <option value="History">History</option>
+                                <option value="Technology">Technology</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-span-2">
+                            <label for="new-book-isbn">ISBN / Serial Number</label>
+                            <input type="text" id="new-book-isbn" placeholder="e.g. 978-0618640157" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-close="modal-add-book">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Register Title</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fine Assessment Modal -->
+    <div class="modal-overlay hidden" id="modal-levy-fine">
+        <div class="modal-card glass-panel">
+            <div class="modal-header">
+                <h3>Levy Penalty Fine</h3>
+                <button class="modal-close-btn" data-close="modal-levy-fine">&times;</button>
+            </div>
+            <form id="form-levy-fine">
+                <input type="hidden" id="fine-reader-id">
+                <div class="modal-body">
+                    <div class="fine-receiver-badge glass-panel">
+                        <div class="user-avatar-small" id="fine-receiver-avatar"></div>
+                        <div>
+                            <strong id="fine-receiver-name">Name</strong>
+                            <p class="text-secondary text-sm" id="fine-receiver-email">email@example.com</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mt-4">
+                        <label for="fine-amount">Fine Amount (₹ INR)</label>
+                        <input type="number" id="fine-amount" min="0.50" max="500.00" step="0.50" value="5.00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fine-reason">Reason for Fine</label>
+                        <select id="fine-reason" required>
+                            <option value="Late Return Penalty">Late Return Penalty</option>
+                            <option value="Damaged Book Sleeve">Damaged Book Sleeve</option>
+                            <option value="Lost Reference Item">Lost Reference Item</option>
+                            <option value="Unreturned Book Penalty">Unreturned Book Penalty</option>
+                            <option value="Custom Penalty Charge">Custom Reason (Type below...)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group hidden" id="custom-fine-reason-container">
+                        <label for="fine-reason-custom">Specify Custom Reason</label>
+                        <input type="text" id="fine-reason-custom" placeholder="e.g. Water damage to cover pages">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-close="modal-levy-fine">Cancel</button>
+                    <button type="submit" class="btn btn-red">Assess Fine Charge</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payment Process Modal -->
+    <div class="modal-overlay hidden" id="modal-payment">
+        <div class="modal-card glass-panel payment-card">
+            <div class="modal-header">
+                <h3>Secure Payment Gateway</h3>
+                <button class="modal-close-btn" data-close="modal-payment">&times;</button>
+            </div>
+            <div class="modal-body text-center" id="payment-gate-screen">
+                <div class="payment-amount-display">
+                    <span class="label">Amount Outstanding</span>
+                    <span class="value" id="payment-amount-value">₹0.00</span>
+                </div>
+
+                <!-- Step 1: Card form -->
+                <form id="form-pay-fine" class="payment-form">
+                    <div class="form-group text-left">
+                        <label for="card-holder">Cardholder Name</label>
+                        <input type="text" id="card-holder" placeholder="e.g. Liam Chen" required>
+                    </div>
+                    <div class="form-group text-left">
+                        <label for="card-number">Card Number</label>
+                        <input type="text" id="card-number" placeholder="4111 2222 3333 4444" pattern="\d{4}\s?\d{4}\s?\d{4}\s?\d{4}" maxlength="19" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group text-left col-6">
+                            <label for="card-expiry">Expiry Date</label>
+                            <input type="text" id="card-expiry" placeholder="MM/YY" pattern="(0[1-9]|1[0-2])\/?([0-9]{2})" maxlength="5" required>
+                        </div>
+                        <div class="form-group text-left col-6">
+                            <label for="card-cvc">CVC</label>
+                            <input type="password" id="card-cvc" placeholder="123" pattern="\d{3,4}" maxlength="4" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-green btn-block mt-4">Confirm Payment</button>
+                </form>
+            </div>
+
+            <!-- Step 2: Spinner (hidden by default) -->
+            <div class="modal-body text-center hidden" id="payment-processing-screen">
+                <div class="spinner-container">
+                    <div class="payment-spinner"></div>
+                </div>
+                <h4>Authorizing Transaction...</h4>
+                <p class="text-secondary text-sm">Please do not refresh the page or click back.</p>
+            </div>
+
+            <!-- Step 3: Success Screen (hidden by default) -->
+            <div class="modal-body text-center hidden" id="payment-success-screen">
+                <div class="success-animation-checkmark">
+                    <div class="checkmark-circle">
+                        <span class="checkmark draw"></span>
+                    </div>
+                </div>
+                <h3 class="text-green">Payment Authorized!</h3>
+                <p>All outstanding balances have been settled successfully.</p>
+                <button type="button" class="btn btn-secondary mt-4" data-close="modal-payment">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Scripts -->
+    <script src="app.js?v=1.0.1"></script>
+</body>
+</html>
